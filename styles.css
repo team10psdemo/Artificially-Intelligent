@@ -139,6 +139,76 @@ h3 {
     margin: 1rem 0;
 }
 
+/* Multiplayer Screen */
+#multiplayer-screen input[type="text"] {
+    padding: 0.8rem;
+    font-size: 1.1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    margin: 1rem 0;
+    width: 80%;
+    max-width: 300px;
+}
+
+#multiplayer-screen input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#matchmaking-status, #match-found {
+    margin: 2rem 0;
+}
+
+#status-message {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+}
+
+/* Chat Box */
+#chat-box {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 250px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+#chat-messages {
+    height: 150px;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.chat-message {
+    padding: 0.3rem;
+    margin: 0.2rem 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+#chat-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+}
+
+#chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#opponent-info {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     h1 {

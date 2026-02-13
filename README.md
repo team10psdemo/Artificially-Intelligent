@@ -4,17 +4,29 @@ Hackathon game project - a flexible web-based game starter template.
 
 ## Quick Start
 
+### Single Player
 1. Open `index.html` in a web browser
-2. Start customizing the game logic in `game.js`
-3. Adjust styles in `styles.css`
+2. Click "Single Player"
+
+### Multiplayer
+1. Install dependencies: `npm install`
+2. Start server: `npm start`
+3. Open `http://localhost:3000` in two browser windows
+4. Click "Multiplayer" and find a match!
+
+See [MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md) for detailed multiplayer instructions.
 
 ## Project Structure
 
 ```
-├── index.html          # Main HTML structure with game screens
-├── styles.css          # Styling and responsive design
-├── game.js             # Game logic, state management, and utilities
-└── README.md           # This file
+├── index.html              # Main HTML structure with game screens
+├── styles.css              # Styling and responsive design
+├── game.js                 # Game logic, state management, and utilities
+├── multiplayer.js          # Multiplayer client-side handler
+├── server.js               # Node.js multiplayer server
+├── package.json            # Node.js dependencies
+├── MULTIPLAYER_SETUP.md    # Detailed multiplayer guide
+└── README.md               # This file
 ```
 
 ## Features
@@ -27,6 +39,8 @@ Hackathon game project - a flexible web-based game starter template.
 ✅ **Modern UI** with smooth transitions and gradients  
 ✅ **Utility functions** for common game operations  
 ✅ **Clean architecture** ready for rapid development  
+✅ **Real-time multiplayer** with matchmaking and chat  
+✅ **WebSocket-based networking** for low-latency gameplay  
 
 ## Customization Guide
 

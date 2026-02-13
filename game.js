@@ -16,6 +16,12 @@ class Game {
         this.soundEnabled = true;
         this.animationId = null;
         
+        // Multiplayer
+        this.isMultiplayer = false;
+        this.multiplayer = null;
+        this.playerNumber = null;
+        this.opponentScore = 0;
+        
         // Set canvas size
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -34,8 +40,22 @@ class Game {
     setupEventListeners() {
         // Menu buttons
         document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('multiplayer-btn').addEventListener('click', () => this.showMultiplayerScreen());
         document.getElementById('sound-toggle').addEventListener('change', (e) => {
             this.soundEnabled = e.target.checked;
+        });
+        
+        // Multiplayer buttons
+        document.getElementById('find-match-btn').addEventListener('click', () => this.findMatch());
+        document.getElementById('cancel-match-btn').addEventListener('click', () => this.cancelMatch());
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => this.showScreen('menu-screen'));
+        document.getElementById('ready-btn').addEventListener('click', () => this.playerReady());
+        
+        // Chat
+        document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && this.isMultiplayer) {
+                this.sendChatMessage();
+            }
         });
         
         // Game buttons
@@ -63,12 +83,81 @@ class Game {
         document.getElementById(screenId).classList.add('active');
     }
     
+    showMultiplayerScreen() {
+        this.showScreen('multiplayer-screen');
+        document.getElementById('player-name-input').style.display = 'block';
+        document.getElementById('matchmaking-status').style.display = 'none';
+        document.getElementById('match-found').style.display = 'none';
+    }
+    
+    findMatch() {
+        const playerName = document.getElementById('player-name').value.trim() || 'Player';
+        
+        if (!this.multiplayer) {
+            this.multiplayer = new MultiplayerManager(this);
+        }
+        
+        this.multiplayer.findMatch(playerName);
+        
+        document.getElementById('player-name-input').style.display = 'none';
+        document.getElementById('matchmaking-status').style.display = 'block';
+    }
+    
+    cancelMatch() {
+        if (this.multiplayer) {
+            this.multiplayer.cancelMatchmaking();
+        }
+        this.showScreen('menu-screen');
+    }
+    
+    playerReady() {
+        if (this.multiplayer) {
+            this.multiplayer.sendReady();
+        }
+        document.getElementById('ready-btn').disabled = true;
+        document.getElementById('ready-btn').textContent = 'Waiting...';
+    }
+    
+    showMessage(message) {
+        const statusMsg = document.getElementById('status-message');
+        if (statusMsg) {
+            statusMsg.textContent = message;
+        }
+    }
+    
+    showReadyButton() {
+        document.getElementById('matchmaking-status').style.display = 'none';
+        document.getElementById('match-found').style.display = 'block';
+        
+        if (this.multiplayer && this.multiplayer.opponent) {
+            document.getElementById('opponent-name').textContent = this.multiplayer.opponent.name;
+        }
+    }
+    
     startGame() {
+        this.isMultiplayer = false;
         this.state = GameState.PLAYING;
         this.score = 0;
         this.lives = 3;
         this.updateUI();
         this.showScreen('game-screen');
+        document.getElementById('opponent-info').style.display = 'none';
+        document.getElementById('chat-box').style.display = 'none';
+        this.initGame();
+        this.gameLoop();
+    }
+    
+    startMultiplayerGame(gameState, playerNumber) {
+        this.isMultiplayer = true;
+        this.playerNumber = playerNumber;
+        this.state = GameState.PLAYING;
+        this.score = 0;
+        this.lives = 3;
+        this.opponentScore = 0;
+        this.updateUI();
+        this.showScreen('game-screen');
+        document.getElementById('opponent-info').style.display = 'block';
+        document.getElementById('chat-box').style.display = 'block';
         this.initGame();
         this.gameLoop();
     }
@@ -105,11 +194,20 @@ class Game {
     updateUI() {
         document.getElementById('score-value').textContent = this.score;
         document.getElementById('lives-value').textContent = this.lives;
+        
+        if (this.isMultiplayer) {
+            document.getElementById('opponent-score').textContent = this.opponentScore;
+        }
     }
     
     addScore(points) {
         this.score += points;
         this.updateUI();
+        
+        // Send score update to opponent
+        if (this.isMultiplayer && this.multiplayer) {
+            this.multiplayer.sendPlayerUpdate({ score: this.score });
+        }
     }
     
     loseLife() {
@@ -144,6 +242,12 @@ class Game {
         // Example: this.player.update();
         // Example: this.enemies.forEach(enemy => enemy.update());
         // Example: this.checkCollisions();
+        
+        // Send player state to opponent (throttled)
+        if (this.isMultiplayer && this.multiplayer) {
+            // TODO: Send your player position/state
+            // Example: this.multiplayer.sendPlayerUpdate({ x: this.player.x, y: this.player.y });
+        }
     }
     
     // Render game (customize this for your game)
@@ -156,12 +260,59 @@ class Game {
         // Example: this.player.draw(this.ctx);
         // Example: this.enemies.forEach(enemy => enemy.draw(this.ctx));
         
+        // Draw opponent (if multiplayer)
+        if (this.isMultiplayer && this.multiplayer) {
+            const opponentState = this.multiplayer.getOpponentState();
+            // TODO: Draw opponent based on their state
+            // Example: this.drawOpponent(opponentState);
+        }
+        
         // Example placeholder rendering
         this.ctx.fillStyle = '#fff';
         this.ctx.font = '24px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Game rendering here', this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.fillText('Add your game logic!', this.canvas.width / 2, this.canvas.height / 2 + 40);
+        
+        if (this.isMultiplayer) {
+            this.ctx.fillText(`You are Player ${this.playerNumber}`, this.canvas.width / 2, this.canvas.height / 2 + 80);
+        }
+    }
+    
+    handleMultiplayerEvent(eventData) {
+        // Handle events from opponent
+        // Example: if (eventData.type === 'score') this.opponentScore = eventData.score;
+        if (eventData.type === 'score') {
+            this.opponentScore = eventData.score;
+            this.updateUI();
+        }
+    }
+    
+    endMultiplayerGame(result) {
+        this.isMultiplayer = false;
+        if (result === 'win') {
+            this.addScore(1000); // Bonus for winning
+        }
+        this.gameOver();
+    }
+    
+    sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const message = input.value.trim();
+        
+        if (message && this.multiplayer) {
+            this.multiplayer.sendChatMessage(message);
+            input.value = '';
+        }
+    }
+    
+    addChatMessage(data) {
+        const chatMessages = document.getElementById('chat-messages');
+        const messageEl = document.createElement('div');
+        messageEl.className = 'chat-message';
+        messageEl.textContent = `${data.playerName}: ${data.message}`;
+        chatMessages.appendChild(messageEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
     // Input handlers (customize for your game)

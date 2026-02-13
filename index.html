@@ -10,7 +10,8 @@
     <div id="game-container">
         <div id="menu-screen" class="screen active">
             <h1>Game Title</h1>
-            <button id="start-btn" class="btn btn-primary">Start Game</button>
+            <button id="start-btn" class="btn btn-primary">Single Player</button>
+            <button id="multiplayer-btn" class="btn btn-primary">Multiplayer</button>
             <div id="settings">
                 <h3>Settings</h3>
                 <label>
@@ -19,13 +20,37 @@
             </div>
         </div>
 
+        <div id="multiplayer-screen" class="screen">
+            <h2>Multiplayer</h2>
+            <div id="player-name-input">
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+                <button id="find-match-btn" class="btn btn-primary">Find Match</button>
+                <button id="back-to-menu-btn" class="btn btn-secondary">Back</button>
+            </div>
+            <div id="matchmaking-status" style="display: none;">
+                <p id="status-message">Searching for opponent...</p>
+                <button id="cancel-match-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+            <div id="match-found" style="display: none;">
+                <p>Matched with: <span id="opponent-name"></span></p>
+                <button id="ready-btn" class="btn btn-primary">Ready!</button>
+            </div>
+        </div>
+
         <div id="game-screen" class="screen">
             <div id="game-ui">
                 <div id="score">Score: <span id="score-value">0</span></div>
                 <div id="lives">Lives: <span id="lives-value">3</span></div>
+                <div id="opponent-info" style="display: none;">
+                    Opponent: <span id="opponent-score">0</span>
+                </div>
                 <button id="pause-btn" class="btn btn-small">Pause</button>
             </div>
             <canvas id="game-canvas"></canvas>
+            <div id="chat-box" style="display: none;">
+                <div id="chat-messages"></div>
+                <input type="text" id="chat-input" placeholder="Type message...">
+            </div>
         </div>
 
         <div id="pause-screen" class="screen">
@@ -42,6 +67,8 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="multiplayer.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
