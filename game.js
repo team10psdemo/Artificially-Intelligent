@@ -192,6 +192,9 @@ class Game {
         // Ensure Socket.IO connection exists for highscore updates
         if (!this.multiplayer) {
             this.multiplayer = new MultiplayerManager(this);
+            this.multiplayer.connect();
+        } else if (!this.multiplayer.connected) {
+            this.multiplayer.connect();
         }
         
         // Request and display computer highscores
@@ -292,7 +295,7 @@ class Game {
         document.getElementById('waiting-message').style.display = 'block';
         document.getElementById('waiting-message').textContent = 'Waiting for opponent...';
         
-        if (this.multiplayer) {
+        if (this.isMultiplayer) {
             this.multiplayer.submitChoice(choice);
         } else {
             this.playAgainstComputer(choice);
@@ -353,7 +356,7 @@ class Game {
     async onRoundResult(result) {
         this.gamePhase = 'revealing';
         
-        const myId = this.multiplayer ? this.multiplayer.socket.id : 'player';
+        const myId = this.isMultiplayer ? this.multiplayer.socket.id : 'player';
         this.myChoice = result.choices[myId] || result.choices.player;
         
         const opponentId = Object.keys(result.choices).find(id => id !== myId);
@@ -427,7 +430,7 @@ class Game {
     
     showFinalResults(data) {
         this.gamePhase = 'game-over';
-        const myId = this.multiplayer ? this.multiplayer.socket.id : 'player';
+        const myId = this.isMultiplayer ? this.multiplayer.socket.id : 'player';
         
         let resultText = '';
         if (data.winnerId === 'draw') {
