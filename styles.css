@@ -51,8 +51,8 @@ body {
 }
 
 #game-container {
-    width: 92vw;
-    max-width: 900px;
+    width: 95vw;
+    max-width: 1400px;
     background: var(--arcade-bg2);
     border: 6px solid #2a2a3a;
     border-radius: 4px;
@@ -267,8 +267,8 @@ h3 {
 .arcade-screen,
 #game-canvas {
     width: 100%;
-    max-width: 700px;
-    height: 500px;
+    max-width: 900px;
+    height: 550px;
     background: #000;
     border: 8px solid #1a1a1a;
     box-shadow:
@@ -440,15 +440,15 @@ h3 {
 /* Chat */
 .arcade-chat,
 #chat-box {
-    width: 260px;
-    min-width: 260px;
+    width: 240px;
+    min-width: 240px;
     background: rgba(0, 0, 0, 0.7);
     border: 4px solid var(--neon-cyan);
     padding: 1rem;
     display: flex;
     flex-direction: column;
     height: fit-content;
-    max-height: 500px;
+    max-height: 550px;
 }
 
 .chat-title {
@@ -491,45 +491,47 @@ h3 {
 
 /* Highscore Box */
 #highscore-box {
-    width: 280px;
-    min-width: 280px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 10px;
+    width: 240px;
+    min-width: 240px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 4px solid var(--neon-green);
     padding: 1rem;
     display: flex;
     flex-direction: column;
     height: fit-content;
-    max-height: 600px;
+    max-height: 550px;
 }
 
 .highscore-title {
-    font-size: 1.2rem;
-    margin: 0 0 1rem 0;
+    font-size: 0.6rem;
+    margin: 0 0 0.75rem 0;
     padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 3px solid var(--neon-green);
+    color: var(--neon-green);
 }
 
 #highscore-list {
-    height: 400px;
+    height: 420px;
     overflow-y: auto;
     margin-bottom: 1rem;
-    font-size: 0.9rem;
+    font-size: 0.45rem;
     flex: 1;
+    color: var(--neon-green);
 }
 
 .highscore-item {
-    padding: 0.6rem;
-    margin: 0.4rem 0;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    padding: 0.5rem;
+    margin: 0.3rem 0;
+    background: rgba(0, 255, 65, 0.08);
+    border-left: 3px solid var(--neon-cyan);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    line-height: 1.5;
 }
 
 .highscore-rank {
-    font-weight: bold;
-    color: #FFD700;
+    color: var(--neon-yellow);
     margin-right: 0.5rem;
 }
 
@@ -538,8 +540,7 @@ h3 {
 }
 
 .highscore-score {
-    font-weight: bold;
-    color: #4CAF50;
+    color: var(--neon-green);
 }
 
 #opponent-info {
