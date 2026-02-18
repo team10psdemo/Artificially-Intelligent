@@ -17,27 +17,89 @@ const games = new Map(); // gameId -> game state
 const players = new Map(); // socketId -> player info
 const waitingPlayers = []; // Players waiting for a match
 
-class GameRoom {
+class RPSGameRoom {
     constructor(gameId, player1, player2) {
         this.gameId = gameId;
         this.players = [player1, player2];
-        this.gameState = {
-            player1: { id: player1.id, x: 100, y: 100, score: 0 },
-            player2: { id: player2.id, x: 700, y: 100, score: 0 }
+        this.currentRound = 1;
+        this.maxRounds = 3;
+        this.scores = {
+            [player1.id]: 0,
+            [player2.id]: 0
+        };
+        this.roundChoices = {
+            [player1.id]: null,
+            [player2.id]: null
         };
         this.started = false;
+        this.phase = 'waiting';
     }
 
     getOpponent(playerId) {
         return this.players.find(p => p.id !== playerId);
     }
 
-    updatePlayerState(playerId, state) {
-        if (this.gameState.player1.id === playerId) {
-            this.gameState.player1 = { ...this.gameState.player1, ...state };
-        } else if (this.gameState.player2.id === playerId) {
-            this.gameState.player2 = { ...this.gameState.player2, ...state };
+    submitChoice(playerId, choice) {
+        if (!['rock', 'paper', 'scissors'].includes(choice)) {
+            return false;
         }
+        this.roundChoices[playerId] = choice;
+        return true;
+    }
+
+    bothChoicesSubmitted() {
+        return this.roundChoices[this.players[0].id] !== null && 
+               this.roundChoices[this.players[1].id] !== null;
+    }
+
+    determineWinner() {
+        const player1Id = this.players[0].id;
+        const player2Id = this.players[1].id;
+        const choice1 = this.roundChoices[player1Id];
+        const choice2 = this.roundChoices[player2Id];
+
+        let winnerId = null;
+        if (choice1 === choice2) {
+            winnerId = 'draw';
+        } else if (
+            (choice1 === 'rock' && choice2 === 'scissors') ||
+            (choice1 === 'paper' && choice2 === 'rock') ||
+            (choice1 === 'scissors' && choice2 === 'paper')
+        ) {
+            winnerId = player1Id;
+            this.scores[player1Id]++;
+        } else {
+            winnerId = player2Id;
+            this.scores[player2Id]++;
+        }
+
+        const result = {
+            round: this.currentRound,
+            choices: {
+                [player1Id]: choice1,
+                [player2Id]: choice2
+            },
+            winnerId: winnerId,
+            scores: this.scores,
+            gameOver: this.currentRound >= this.maxRounds
+        };
+
+        if (!result.gameOver) {
+            this.currentRound++;
+            this.roundChoices[player1Id] = null;
+            this.roundChoices[player2Id] = null;
+        }
+
+        return result;
+    }
+
+    reset() {
+        this.currentRound = 1;
+        this.scores[this.players[0].id] = 0;
+        this.scores[this.players[1].id] = 0;
+        this.roundChoices[this.players[0].id] = null;
+        this.roundChoices[this.players[1].id] = null;
+        this.phase = 'waiting';
     }
 }
 
@@ -59,7 +121,7 @@ io.on('connection', (socket) => {
             const gameId = `game-${Date.now()}`;
             
             // Create game room
-            const gameRoom = new GameRoom(gameId, opponent, player);
+            const gameRoom = new RPSGameRoom(gameId, opponent, player);
             games.set(gameId, gameRoom);
 
             // Join both players to the room
@@ -101,22 +163,40 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Player sends game state update
-    socket.on('player-update', (data) => {
+    // Player submits their choice (rock/paper/scissors)
+    socket.on('submit-choice', (choice) => {
         const player = players.get(socket.id);
         if (!player || !player.gameId) return;
 
         const game = games.get(player.gameId);
-        if (!game) return;
+        if (!game || !game.started) return;
 
-        // Update player state
-        game.updatePlayerState(socket.id, data);
+        const validChoice = game.submitChoice(socket.id, choice);
+        
+        if (!validChoice) {
+            socket.emit('error', { message: 'Invalid choice' });
+            return;
+        }
 
-        // Broadcast to opponent
-        socket.to(player.gameId).emit('opponent-update', {
-            playerId: socket.id,
-            ...data
-        });
+        socket.emit('choice-confirmed');
+
+        if (game.bothChoicesSubmitted()) {
+            const result = game.determineWinner();
+            io.to(player.gameId).emit('round-result', result);
+
+            if (result.gameOver) {
+                const finalWinnerId = result.scores[game.players[0].id] > result.scores[game.players[1].id] 
+                    ? game.players[0].id 
+                    : (result.scores[game.players[0].id] < result.scores[game.players[1].id] 
+                        ? game.players[1].id 
+                        : 'draw');
+                
+                io.to(player.gameId).emit('game-over', {
+                    winnerId: finalWinnerId,
+                    finalScores: result.scores
+                });
+            }
+        }
     });
 
     // Game event (e.g., scoring, power-ups, etc.)
@@ -152,6 +232,31 @@ io.on('connection', (socket) => {
                 gameState: game.gameState
             });
             console.log(`Game ${player.gameId} started`);
+        }
+    });
+
+    // Rematch request
+    socket.on('request-rematch', () => {
+        const player = players.get(socket.id);
+        if (!player || !player.gameId) return;
+
+        const game = games.get(player.gameId);
+        if (!game) return;
+
+        const playerInGame = game.players.find(p => p.id === socket.id);
+        if (playerInGame) {
+            playerInGame.wantsRematch = true;
+        }
+
+        socket.to(player.gameId).emit('opponent-wants-rematch');
+
+        if (game.players.every(p => p.wantsRematch)) {
+            game.reset();
+            game.players.forEach(p => {
+                p.ready = false;
+                p.wantsRematch = false;
+            });
+            io.to(player.gameId).emit('rematch-ready');
         }
     });
 

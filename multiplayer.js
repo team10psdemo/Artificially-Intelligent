@@ -51,19 +51,28 @@ class MultiplayerManager {
             this.game.startMultiplayerGame(data.gameState, this.playerNumber);
         });
 
-        this.socket.on('opponent-update', (data) => {
-            // Update opponent's state
-            this.opponentState = data;
+        this.socket.on('choice-confirmed', () => {
+            this.game.onChoiceConfirmed();
         });
 
-        this.socket.on('game-event', (eventData) => {
-            // Handle game events from opponent
-            this.game.handleMultiplayerEvent(eventData);
+        this.socket.on('round-result', (result) => {
+            this.game.onRoundResult(result);
+        });
+
+        this.socket.on('game-over', (data) => {
+            this.game.onGameOver(data);
+        });
+
+        this.socket.on('opponent-wants-rematch', () => {
+            this.game.showRematchRequest();
+        });
+
+        this.socket.on('rematch-ready', () => {
+            this.game.startRematch();
         });
 
         this.socket.on('opponent-disconnected', () => {
-            this.game.showMessage('Opponent disconnected. You win!');
-            this.game.endMultiplayerGame('win');
+            this.game.onOpponentDisconnected();
         });
 
         this.socket.on('chat-message', (data) => {
@@ -89,18 +98,9 @@ class MultiplayerManager {
         }
     }
 
-    sendPlayerUpdate(state) {
+    submitChoice(choice) {
         if (this.socket && this.connected && this.isMultiplayer) {
-            this.socket.emit('player-update', state);
-        }
-    }
-
-    sendGameEvent(eventType, eventData) {
-        if (this.socket && this.connected && this.isMultiplayer) {
-            this.socket.emit('game-event', {
-                type: eventType,
-                ...eventData
-            });
+            this.socket.emit('submit-choice', choice);
         }
     }
 
@@ -110,14 +110,16 @@ class MultiplayerManager {
         }
     }
 
+    requestRematch() {
+        if (this.socket && this.connected && this.isMultiplayer) {
+            this.socket.emit('request-rematch');
+        }
+    }
+
     sendChatMessage(message) {
         if (this.socket && this.connected && this.isMultiplayer) {
             this.socket.emit('chat-message', message);
         }
-    }
-
-    getOpponentState() {
-        return this.opponentState;
     }
 
     disconnect() {

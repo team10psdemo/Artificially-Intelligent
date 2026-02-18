@@ -117,9 +117,27 @@ h3 {
     border-radius: 10px;
 }
 
-#score, #lives {
+#game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#round-info {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #FFD700;
+}
+
+#score-display {
     font-size: 1.2rem;
     font-weight: bold;
+    display: flex;
+    gap: 1rem;
+}
+
+#score-display span {
+    margin: 0 0.3rem;
 }
 
 /* Canvas */
@@ -133,10 +151,82 @@ h3 {
     margin: 0 auto;
 }
 
-/* Game Over Screen */
-#game-over-screen p {
+/* RPS Choice Buttons */
+#choice-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.btn-choice {
+    padding: 2rem 2.5rem;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-choice:hover:not(:disabled) {
+    transform: scale(1.1) translateY(-5px);
+    box-shadow: 0 15px 30px rgba(102, 126, 234, 0.5);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-choice:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#waiting-message {
+    text-align: center;
     font-size: 1.5rem;
+    margin-top: 2rem;
+    color: #FFD700;
+}
+
+#round-result-screen {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+#round-result-text {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    color: #FFD700;
+}
+
+/* Game Over Screen */
+#game-over-screen {
+    text-align: center;
+    padding: 2rem;
+}
+
+#game-over-screen h2 {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+#final-scores {
+    font-size: 1.8rem;
+    margin: 2rem 0;
+}
+
+#final-scores p {
     margin: 1rem 0;
+}
+
+#rematch-section {
+    margin: 2rem 0;
+}
+
+#rematch-status {
+    font-size: 1.2rem;
+    color: #4CAF50;
+    margin-top: 1rem;
 }
 
 /* Multiplayer Screen */
@@ -212,11 +302,11 @@ h3 {
 /* Responsive Design */
 @media (max-width: 768px) {
     h1 {
-        font-size: 2rem;
+        font-size: 2.5rem;
     }
     
     h2 {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
     }
     
     .btn {
@@ -224,7 +314,24 @@ h3 {
         font-size: 1rem;
     }
     
+    .btn-choice {
+        padding: 1.5rem 2rem;
+        font-size: 1.5rem;
+    }
+    
     #game-canvas {
-        height: 400px;
+        height: 300px;
+    }
+    
+    #choice-buttons {
+        gap: 0.5rem;
+    }
+    
+    #game-over-screen h2 {
+        font-size: 2rem;
+    }
+    
+    #final-scores {
+        font-size: 1.3rem;
     }
 }

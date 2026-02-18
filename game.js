@@ -20,7 +20,16 @@ class Game {
         this.isMultiplayer = false;
         this.multiplayer = null;
         this.playerNumber = null;
+        
+        // RPS Game state
+        this.currentRound = 1;
+        this.maxRounds = 3;
+        this.myScore = 0;
         this.opponentScore = 0;
+        this.myChoice = null;
+        this.opponentChoice = null;
+        this.gamePhase = 'menu'; // 'menu', 'choosing', 'waiting', 'revealing', 'round-result', 'game-over'
+        this.roundResult = null;
         
         // Set canvas size
         this.resizeCanvas();
@@ -50,6 +59,14 @@ class Game {
         document.getElementById('cancel-match-btn').addEventListener('click', () => this.cancelMatch());
         document.getElementById('back-to-menu-btn').addEventListener('click', () => this.showScreen('menu-screen'));
         document.getElementById('ready-btn').addEventListener('click', () => this.playerReady());
+        
+        // RPS choice buttons
+        document.getElementById('rock-btn')?.addEventListener('click', () => this.makeChoice('rock'));
+        document.getElementById('paper-btn')?.addEventListener('click', () => this.makeChoice('paper'));
+        document.getElementById('scissors-btn')?.addEventListener('click', () => this.makeChoice('scissors'));
+        document.getElementById('next-round-btn')?.addEventListener('click', () => this.nextRound());
+        document.getElementById('rematch-btn')?.addEventListener('click', () => this.requestRematch());
+        document.getElementById('final-menu-btn')?.addEventListener('click', () => this.quitToMenu());
         
         // Chat
         document.getElementById('chat-input')?.addEventListener('keypress', (e) => {
@@ -137,163 +154,364 @@ class Game {
     startGame() {
         this.isMultiplayer = false;
         this.state = GameState.PLAYING;
-        this.score = 0;
-        this.lives = 3;
+        this.currentRound = 1;
+        this.myScore = 0;
+        this.opponentScore = 0;
+        this.myChoice = null;
+        this.opponentChoice = null;
+        this.gamePhase = 'choosing';
         this.updateUI();
         this.showScreen('game-screen');
         document.getElementById('opponent-info').style.display = 'none';
         document.getElementById('chat-box').style.display = 'none';
         this.initGame();
-        this.gameLoop();
+        this.render();
     }
     
     startMultiplayerGame(gameState, playerNumber) {
         this.isMultiplayer = true;
         this.playerNumber = playerNumber;
         this.state = GameState.PLAYING;
-        this.score = 0;
-        this.lives = 3;
+        this.currentRound = 1;
+        this.myScore = 0;
         this.opponentScore = 0;
+        this.myChoice = null;
+        this.opponentChoice = null;
+        this.gamePhase = 'choosing';
         this.updateUI();
         this.showScreen('game-screen');
         document.getElementById('opponent-info').style.display = 'block';
         document.getElementById('chat-box').style.display = 'block';
         this.initGame();
-        this.gameLoop();
+        this.render();
     }
     
     pauseGame() {
-        if (this.state === GameState.PLAYING) {
-            this.state = GameState.PAUSED;
-            this.showScreen('pause-screen');
-            cancelAnimationFrame(this.animationId);
+        if (confirm('Are you sure you want to quit?')) {
+            this.quitToMenu();
         }
     }
     
     resumeGame() {
-        if (this.state === GameState.PAUSED) {
-            this.state = GameState.PLAYING;
-            this.showScreen('game-screen');
-            this.gameLoop();
-        }
+        this.showScreen('game-screen');
     }
     
     quitToMenu() {
         this.state = GameState.MENU;
-        cancelAnimationFrame(this.animationId);
+        this.isMultiplayer = false;
+        this.gamePhase = 'menu';
+        document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('round-result-screen').style.display = 'none';
+        if (this.multiplayer) {
+            this.multiplayer.disconnect();
+        }
         this.showScreen('menu-screen');
     }
     
-    gameOver() {
-        this.state = GameState.GAME_OVER;
-        cancelAnimationFrame(this.animationId);
-        document.getElementById('final-score').textContent = this.score;
-        this.showScreen('game-over-screen');
-    }
-    
     updateUI() {
-        document.getElementById('score-value').textContent = this.score;
-        document.getElementById('lives-value').textContent = this.lives;
+        document.getElementById('round-number').textContent = this.currentRound;
+        document.getElementById('score-value').textContent = this.myScore;
         
         if (this.isMultiplayer) {
             document.getElementById('opponent-score').textContent = this.opponentScore;
         }
     }
     
-    addScore(points) {
-        this.score += points;
-        this.updateUI();
-        
-        // Send score update to opponent
-        if (this.isMultiplayer && this.multiplayer) {
-            this.multiplayer.sendPlayerUpdate({ score: this.score });
-        }
-    }
-    
-    loseLife() {
-        this.lives--;
-        this.updateUI();
-        if (this.lives <= 0) {
-            this.gameOver();
-        }
-    }
-    
-    // Game-specific initialization (customize this for your game)
     initGame() {
-        // TODO: Initialize game objects, entities, etc.
-        // Example: this.player = new Player(this.canvas.width / 2, this.canvas.height / 2);
-        // Example: this.enemies = [];
-        console.log('Game initialized');
+        console.log('RPS Game initialized');
+        this.gamePhase = 'choosing';
+        this.showChoiceButtons();
     }
     
-    // Main game loop
-    gameLoop() {
-        if (this.state !== GameState.PLAYING) return;
+    showChoiceButtons() {
+        const choiceButtons = document.getElementById('choice-buttons');
+        const waitingMsg = document.getElementById('waiting-message');
+        const resultDisplay = document.getElementById('result-display');
+        const roundResultScreen = document.getElementById('round-result-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
         
-        this.update();
+        if (choiceButtons) choiceButtons.style.display = 'flex';
+        if (waitingMsg) waitingMsg.style.display = 'none';
+        if (resultDisplay) resultDisplay.style.display = 'none';
+        if (roundResultScreen) roundResultScreen.style.display = 'none';
+        if (gameOverScreen) gameOverScreen.style.display = 'none';
+        
+        ['rock-btn', 'paper-btn', 'scissors-btn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) btn.disabled = false;
+        });
+    }
+    
+    hideChoiceButtons() {
+        ['rock-btn', 'paper-btn', 'scissors-btn'].forEach(id => {
+            document.getElementById(id).disabled = true;
+        });
+    }
+    
+    makeChoice(choice) {
+        this.myChoice = choice;
+        this.gamePhase = 'waiting';
+        this.hideChoiceButtons();
+        
+        document.getElementById('waiting-message').style.display = 'block';
+        document.getElementById('waiting-message').textContent = 'Waiting for opponent...';
+        
+        if (this.multiplayer) {
+            this.multiplayer.submitChoice(choice);
+        } else {
+            this.playAgainstComputer(choice);
+        }
+        
         this.render();
-        
-        this.animationId = requestAnimationFrame(() => this.gameLoop());
     }
     
-    // Update game logic (customize this for your game)
-    update() {
-        // TODO: Update game objects, check collisions, etc.
-        // Example: this.player.update();
-        // Example: this.enemies.forEach(enemy => enemy.update());
-        // Example: this.checkCollisions();
+    playAgainstComputer(playerChoice) {
+        const choices = ['rock', 'paper', 'scissors'];
+        const computerChoice = choices[Math.floor(Math.random() * choices.length)];
         
-        // Send player state to opponent (throttled)
-        if (this.isMultiplayer && this.multiplayer) {
-            // TODO: Send your player position/state
-            // Example: this.multiplayer.sendPlayerUpdate({ x: this.player.x, y: this.player.y });
+        setTimeout(() => {
+            const mockResult = {
+                round: this.currentRound,
+                choices: {
+                    player: playerChoice,
+                    computer: computerChoice
+                },
+                winnerId: this.determineLocalWinner(playerChoice, computerChoice),
+                scores: {
+                    player: this.myScore,
+                    computer: this.opponentScore
+                },
+                gameOver: this.currentRound >= this.maxRounds
+            };
+            
+            this.onRoundResult(mockResult);
+        }, 1000);
+    }
+    
+    determineLocalWinner(choice1, choice2) {
+        if (choice1 === choice2) return 'draw';
+        if (
+            (choice1 === 'rock' && choice2 === 'scissors') ||
+            (choice1 === 'paper' && choice2 === 'rock') ||
+            (choice1 === 'scissors' && choice2 === 'paper')
+        ) {
+            return 'player';
+        }
+        return 'computer';
+    }
+    
+    onChoiceConfirmed() {
+        console.log('Choice confirmed by server');
+    }
+    
+    async onRoundResult(result) {
+        this.gamePhase = 'revealing';
+        
+        const myId = this.multiplayer ? this.multiplayer.socket.id : 'player';
+        this.myChoice = result.choices[myId] || result.choices.player;
+        
+        const opponentId = Object.keys(result.choices).find(id => id !== myId);
+        this.opponentChoice = result.choices[opponentId];
+        
+        this.myScore = result.scores[myId] || result.scores.player || 0;
+        this.opponentScore = result.scores[opponentId] || result.scores.computer || 0;
+        
+        document.getElementById('waiting-message').style.display = 'none';
+        
+        await this.animateReveal();
+        
+        const winnerId = result.winnerId;
+        let resultText = '';
+        if (winnerId === 'draw') {
+            resultText = "It's a Draw!";
+        } else if (winnerId === myId || winnerId === 'player') {
+            resultText = 'You Win This Round!';
+        } else {
+            resultText = 'You Lose This Round!';
+        }
+        
+        this.roundResult = resultText;
+        this.updateUI();
+        
+        if (result.gameOver) {
+            setTimeout(() => {
+                this.showFinalResults({
+                    winnerId: this.myScore > this.opponentScore ? myId : (this.myScore < this.opponentScore ? opponentId : 'draw'),
+                    finalScores: result.scores
+                });
+            }, 2000);
+        } else {
+            this.gamePhase = 'round-result';
+            this.showRoundResultScreen(resultText);
         }
     }
     
-    // Render game (customize this for your game)
-    render() {
-        // Clear canvas
-        this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    async animateReveal() {
+        const canvas = this.canvas;
+        const ctx = this.ctx;
         
-        // TODO: Draw game objects
-        // Example: this.player.draw(this.ctx);
-        // Example: this.enemies.forEach(enemy => enemy.draw(this.ctx));
-        
-        // Draw opponent (if multiplayer)
-        if (this.isMultiplayer && this.multiplayer) {
-            const opponentState = this.multiplayer.getOpponentState();
-            // TODO: Draw opponent based on their state
-            // Example: this.drawOpponent(opponentState);
+        for (let i = 3; i >= 1; i--) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '72px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(i, canvas.width / 2, canvas.height / 2);
+            await new Promise(resolve => setTimeout(resolve, 600));
         }
         
-        // Example placeholder rendering
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '24px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Game rendering here', this.canvas.width / 2, this.canvas.height / 2);
-        this.ctx.fillText('Add your game logic!', this.canvas.width / 2, this.canvas.height / 2 + 40);
+        this.render();
+    }
+    
+    showRoundResultScreen(resultText) {
+        document.getElementById('round-result-screen').style.display = 'block';
+        document.getElementById('round-result-text').textContent = resultText;
+        document.getElementById('choice-buttons').style.display = 'none';
+    }
+    
+    nextRound() {
+        this.currentRound++;
+        this.myChoice = null;
+        this.opponentChoice = null;
+        this.roundResult = null;
+        this.gamePhase = 'choosing';
+        this.showChoiceButtons();
+        this.render();
+    }
+    
+    showFinalResults(data) {
+        this.gamePhase = 'game-over';
+        const myId = this.multiplayer ? this.multiplayer.socket.id : 'player';
+        
+        let resultText = '';
+        if (data.winnerId === 'draw') {
+            resultText = "It's a Tie!";
+        } else if (data.winnerId === myId || data.winnerId === 'player') {
+            resultText = 'You Win!';
+        } else {
+            resultText = 'You Lose!';
+        }
+        
+        document.getElementById('final-result-text').textContent = resultText;
+        document.getElementById('final-my-score').textContent = this.myScore;
+        document.getElementById('final-opponent-score').textContent = this.opponentScore;
+        document.getElementById('game-over-screen').style.display = 'block';
+        document.getElementById('round-result-screen').style.display = 'none';
+        document.getElementById('choice-buttons').style.display = 'none';
         
         if (this.isMultiplayer) {
-            this.ctx.fillText(`You are Player ${this.playerNumber}`, this.canvas.width / 2, this.canvas.height / 2 + 80);
+            document.getElementById('rematch-section').style.display = 'block';
+        } else {
+            document.getElementById('rematch-section').style.display = 'none';
         }
     }
     
-    handleMultiplayerEvent(eventData) {
-        // Handle events from opponent
-        // Example: if (eventData.type === 'score') this.opponentScore = eventData.score;
-        if (eventData.type === 'score') {
-            this.opponentScore = eventData.score;
-            this.updateUI();
+    onGameOver(data) {
+        this.showFinalResults(data);
+    }
+    
+    onOpponentDisconnected() {
+        alert('Opponent disconnected! Returning to menu.');
+        this.quitToMenu();
+    }
+    
+    showRematchRequest() {
+        const rematchStatus = document.getElementById('rematch-status');
+        if (rematchStatus) {
+            rematchStatus.textContent = 'Opponent wants a rematch!';
         }
     }
     
-    endMultiplayerGame(result) {
-        this.isMultiplayer = false;
-        if (result === 'win') {
-            this.addScore(1000); // Bonus for winning
+    requestRematch() {
+        if (this.multiplayer) {
+            this.multiplayer.requestRematch();
+            const rematchStatus = document.getElementById('rematch-status');
+            if (rematchStatus) {
+                rematchStatus.textContent = 'Waiting for opponent...';
+            }
+            document.getElementById('rematch-btn').disabled = true;
         }
-        this.gameOver();
+    }
+    
+    startRematch() {
+        this.currentRound = 1;
+        this.myScore = 0;
+        this.opponentScore = 0;
+        this.myChoice = null;
+        this.opponentChoice = null;
+        this.roundResult = null;
+        this.gamePhase = 'choosing';
+        document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('rematch-btn').disabled = false;
+        const rematchStatus = document.getElementById('rematch-status');
+        if (rematchStatus) {
+            rematchStatus.textContent = '';
+        }
+        this.updateUI();
+        this.showChoiceButtons();
+        this.render();
+    }
+    
+    render() {
+        const canvas = this.canvas;
+        const ctx = this.ctx;
+        
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.textAlign = 'center';
+        
+        if (this.gamePhase === 'choosing') {
+            ctx.fillStyle = '#fff';
+            ctx.font = '32px Arial';
+            ctx.fillText('Make Your Choice!', canvas.width / 2, canvas.height / 2 - 50);
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#aaa';
+            ctx.fillText(`Round ${this.currentRound} of ${this.maxRounds}`, canvas.width / 2, canvas.height / 2);
+        } else if (this.gamePhase === 'waiting') {
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px Arial';
+            ctx.fillText('Waiting for opponent...', canvas.width / 2, canvas.height / 2);
+            
+            if (this.myChoice) {
+                ctx.font = '18px Arial';
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText(`Your choice: ${this.myChoice.toUpperCase()}`, canvas.width / 2, canvas.height / 2 + 40);
+            }
+        } else if (this.gamePhase === 'revealing' || this.gamePhase === 'round-result') {
+            const spacing = canvas.width / 3;
+            
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#aaa';
+            ctx.fillText('You', spacing, 100);
+            ctx.fillText('Opponent', spacing * 2, 100);
+            
+            ctx.font = '48px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText(this.getChoiceEmoji(this.myChoice), spacing, canvas.height / 2);
+            
+            ctx.fillStyle = '#f44336';
+            ctx.fillText(this.getChoiceEmoji(this.opponentChoice), spacing * 2, canvas.height / 2);
+            
+            if (this.roundResult) {
+                ctx.font = '28px Arial';
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(this.roundResult, canvas.width / 2, canvas.height - 80);
+            }
+            
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`Score: ${this.myScore} - ${this.opponentScore}`, canvas.width / 2, canvas.height - 40);
+        }
+    }
+    
+    getChoiceEmoji(choice) {
+        const emojis = {
+            'rock': '✊',
+            'paper': '✋',
+            'scissors': '✌️'
+        };
+        return emojis[choice] || '?';
     }
     
     sendChatMessage() {
@@ -315,57 +533,22 @@ class Game {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
-    // Input handlers (customize for your game)
     handleKeyDown(e) {
-        if (this.state !== GameState.PLAYING) return;
-        
-        // TODO: Handle key presses
-        // Example:
-        // switch(e.key) {
-        //     case 'ArrowLeft': this.player.moveLeft(); break;
-        //     case 'ArrowRight': this.player.moveRight(); break;
-        //     case ' ': this.player.shoot(); break;
-        // }
-        
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && this.state === GameState.PLAYING) {
             this.pauseGame();
         }
     }
     
     handleKeyUp(e) {
-        if (this.state !== GameState.PLAYING) return;
-        
-        // TODO: Handle key releases
-        // Example:
-        // switch(e.key) {
-        //     case 'ArrowLeft':
-        //     case 'ArrowRight':
-        //         this.player.stop();
-        //         break;
-        // }
+        // Not needed for RPS
     }
     
     handleClick(e) {
-        if (this.state !== GameState.PLAYING) return;
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // TODO: Handle clicks
-        // Example: this.player.shootAt(x, y);
-        console.log('Click at:', x, y);
+        // Not needed for RPS
     }
     
     handleMouseMove(e) {
-        if (this.state !== GameState.PLAYING) return;
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // TODO: Handle mouse movement
-        // Example: this.player.aimAt(x, y);
+        // Not needed for RPS
     }
 }
 
