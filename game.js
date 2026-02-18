@@ -31,6 +31,11 @@ class Game {
         this.gamePhase = 'menu'; // 'menu', 'choosing', 'waiting', 'revealing', 'round-result', 'game-over'
         this.roundResult = null;
         
+        // Highscore tracking
+        this.playerName = null;
+        this.currentGameMode = null; // 'computer' or 'multiplayer'
+        this.highscores = []; // Current highscore list to display
+        
         // Set canvas size
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -48,11 +53,15 @@ class Game {
     
     setupEventListeners() {
         // Menu buttons
-        document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+        document.getElementById('start-btn').addEventListener('click', () => this.showComputerScreen());
         document.getElementById('multiplayer-btn').addEventListener('click', () => this.showMultiplayerScreen());
         document.getElementById('sound-toggle').addEventListener('change', (e) => {
             this.soundEnabled = e.target.checked;
         });
+        
+        // Computer mode buttons
+        document.getElementById('start-computer-btn').addEventListener('click', () => this.startComputerGameWithName());
+        document.getElementById('back-to-menu-computer-btn').addEventListener('click', () => this.showScreen('menu-screen'));
         
         // Multiplayer buttons
         document.getElementById('find-match-btn').addEventListener('click', () => this.findMatch());
@@ -100,11 +109,22 @@ class Game {
         document.getElementById(screenId).classList.add('active');
     }
     
+    showComputerScreen() {
+        this.showScreen('computer-screen');
+        document.getElementById('computer-name-input').style.display = 'block';
+    }
+    
     showMultiplayerScreen() {
         this.showScreen('multiplayer-screen');
         document.getElementById('player-name-input').style.display = 'block';
         document.getElementById('matchmaking-status').style.display = 'none';
         document.getElementById('match-found').style.display = 'none';
+    }
+    
+    startComputerGameWithName() {
+        const playerName = document.getElementById('computer-player-name').value.trim() || 'Player';
+        this.playerName = playerName;
+        this.startGame();
     }
     
     findMatch() {
@@ -153,6 +173,7 @@ class Game {
     
     startGame() {
         this.isMultiplayer = false;
+        this.currentGameMode = 'computer';
         this.state = GameState.PLAYING;
         this.currentRound = 1;
         this.myScore = 0;
@@ -164,12 +185,22 @@ class Game {
         this.showScreen('game-screen');
         document.getElementById('opponent-info').style.display = 'none';
         document.getElementById('chat-box').style.display = 'none';
+        document.getElementById('highscore-box').style.display = 'flex';
         this.initGame();
         this.render();
+        
+        // Ensure Socket.IO connection exists for highscore updates
+        if (!this.multiplayer) {
+            this.multiplayer = new MultiplayerManager(this);
+        }
+        
+        // Request and display computer highscores
+        this.requestHighscores('computer');
     }
     
     startMultiplayerGame(gameState, playerNumber) {
         this.isMultiplayer = true;
+        this.currentGameMode = 'multiplayer';
         this.playerNumber = playerNumber;
         this.state = GameState.PLAYING;
         this.currentRound = 1;
@@ -182,8 +213,12 @@ class Game {
         this.showScreen('game-screen');
         document.getElementById('opponent-info').style.display = 'block';
         document.getElementById('chat-box').style.display = 'block';
+        document.getElementById('highscore-box').style.display = 'flex';
         this.initGame();
         this.render();
+        
+        // Request and display multiplayer highscores
+        this.requestHighscores('multiplayer');
     }
     
     pauseGame() {
@@ -202,6 +237,7 @@ class Game {
         this.gamePhase = 'menu';
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('round-result-screen').style.display = 'none';
+        document.getElementById('highscore-box').style.display = 'none';
         if (this.multiplayer) {
             this.multiplayer.disconnect();
         }
@@ -270,13 +306,23 @@ class Game {
         const computerChoice = choices[Math.floor(Math.random() * choices.length)];
         
         setTimeout(() => {
+            const winnerId = this.determineLocalWinner(playerChoice, computerChoice);
+            
+            // Increment scores based on winner
+            if (winnerId === 'player') {
+                this.myScore++;
+            } else if (winnerId === 'computer') {
+                this.opponentScore++;
+            }
+            // Draw: no score increment
+            
             const mockResult = {
                 round: this.currentRound,
                 choices: {
                     player: playerChoice,
                     computer: computerChoice
                 },
-                winnerId: this.determineLocalWinner(playerChoice, computerChoice),
+                winnerId: winnerId,
                 scores: {
                     player: this.myScore,
                     computer: this.opponentScore
@@ -403,11 +449,82 @@ class Game {
             document.getElementById('rematch-section').style.display = 'block';
         } else {
             document.getElementById('rematch-section').style.display = 'none';
+            // Update computer highscore
+            this.updateComputerHighscore(data);
+        }
+    }
+    
+    updateComputerHighscore(data) {
+        if (!this.playerName) return;
+        
+        const isTie = data.winnerId === 'draw';
+        const won = !isTie && (data.winnerId === 'player');
+        
+        if (this.multiplayer && this.multiplayer.socket && this.multiplayer.connected) {
+            this.multiplayer.socket.emit('update-highscore-computer', {
+                playerName: this.playerName,
+                isTie: isTie,
+                won: won
+            });
+        }
+    }
+    
+    requestHighscores(mode) {
+        if (this.multiplayer && this.multiplayer.socket && this.multiplayer.connected) {
+            this.multiplayer.requestHighscores(mode);
+        } else if (this.multiplayer) {
+            // Wait for connection
+            setTimeout(() => {
+                if (this.multiplayer && this.multiplayer.socket && this.multiplayer.connected) {
+                    this.multiplayer.requestHighscores(mode);
+                }
+            }, 500);
+        }
+    }
+    
+    displayHighscores(highscores, mode) {
+        const highscoreList = document.getElementById('highscore-list');
+        if (!highscoreList) return;
+        
+        highscoreList.innerHTML = '';
+        
+        if (highscores.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'highscore-item';
+            emptyMsg.textContent = 'No scores yet';
+            emptyMsg.style.textAlign = 'center';
+            highscoreList.appendChild(emptyMsg);
+        } else {
+            highscores.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'highscore-item';
+                
+                const rank = document.createElement('span');
+                rank.className = 'highscore-rank';
+                rank.textContent = `#${entry.rank}`;
+                
+                const name = document.createElement('span');
+                name.className = 'highscore-name';
+                name.textContent = entry.name;
+                
+                const score = document.createElement('span');
+                score.className = 'highscore-score';
+                score.textContent = entry.score;
+                
+                item.appendChild(rank);
+                item.appendChild(name);
+                item.appendChild(score);
+                highscoreList.appendChild(item);
+            });
         }
     }
     
     onGameOver(data) {
         this.showFinalResults(data);
+        // Request updated highscores for multiplayer
+        if (this.isMultiplayer) {
+            this.requestHighscores('multiplayer');
+        }
     }
     
     onOpponentDisconnected() {

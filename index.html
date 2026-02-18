@@ -21,6 +21,15 @@
             </div>
         </div>
 
+        <div id="computer-screen" class="screen">
+            <h2>Play vs Computer</h2>
+            <div id="computer-name-input">
+                <input type="text" id="computer-player-name" placeholder="Enter your name" maxlength="20">
+                <button id="start-computer-btn" class="btn btn-primary">Start Game</button>
+                <button id="back-to-menu-computer-btn" class="btn btn-secondary">Back</button>
+            </div>
+        </div>
+
         <div id="multiplayer-screen" class="screen">
             <h2>Multiplayer</h2>
             <div id="player-name-input">
@@ -40,6 +49,10 @@
 
         <div id="game-screen" class="screen">
             <div id="game-layout">
+                <div id="highscore-box" style="display: none;">
+                    <h3 class="highscore-title">Highscores</h3>
+                    <div id="highscore-list"></div>
+                </div>
                 <div id="game-main">
                     <div id="game-ui">
                         <div id="game-info">

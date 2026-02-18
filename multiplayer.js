@@ -78,6 +78,16 @@ class MultiplayerManager {
         this.socket.on('chat-message', (data) => {
             this.game.addChatMessage(data);
         });
+
+        this.socket.on('highscores-data', (data) => {
+            this.game.displayHighscores(data.highscores, data.mode);
+        });
+
+        this.socket.on('highscores-updated', (data) => {
+            if (this.game.currentGameMode === data.mode) {
+                this.game.displayHighscores(data.highscores, data.mode);
+            }
+        });
     }
 
     findMatch(playerName) {
@@ -119,6 +129,12 @@ class MultiplayerManager {
     sendChatMessage(message) {
         if (this.socket && this.connected && this.isMultiplayer) {
             this.socket.emit('chat-message', message);
+        }
+    }
+
+    requestHighscores(mode) {
+        if (this.socket && this.connected) {
+            this.socket.emit('request-highscores', { mode });
         }
     }
 
