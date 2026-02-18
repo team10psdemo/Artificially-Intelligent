@@ -1,121 +1,138 @@
-# Artificially-Intelligent
+# Rock Paper Scissors - Multiplayer
 
-Hackathon game project - a flexible web-based game starter template.
+A real-time multiplayer rock-paper-scissors game built with WebSockets for instant, competitive gameplay.
 
 ## Quick Start
 
-### Single Player
-1. Open `index.html` in a web browser
-2. Click "Single Player"
-
-### Multiplayer
+### Single Player (vs Computer)
 1. Install dependencies: `npm install`
 2. Start server: `npm start`
-3. Open `http://localhost:3000` in two browser windows
-4. Click "Multiplayer" and find a match!
+3. Open `http://localhost:3000` in your browser
+4. Click "Play vs Computer"
+5. Make your choice and play best-of-3!
 
-See [MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md) for detailed multiplayer instructions.
+### Multiplayer (vs Real Player)
+1. Start server: `npm start`
+2. Open `http://localhost:3000` in **two browser windows**
+3. Both players click "Multiplayer"
+4. Enter your names and click "Find Match"
+5. When matched, both click "Ready!"
+6. Play rock-paper-scissors in real-time!
+
+See [MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md) for technical details.
 
 ## Project Structure
 
 ```
 ├── index.html              # Main HTML structure with game screens
-├── styles.css              # Styling and responsive design
-├── game.js                 # Game logic, state management, and utilities
-├── multiplayer.js          # Multiplayer client-side handler
-├── server.js               # Node.js multiplayer server
-├── package.json            # Node.js dependencies
-├── MULTIPLAYER_SETUP.md    # Detailed multiplayer guide
+├── styles.css              # Modern responsive styling with two-column layout
+├── game.js                 # RPS game logic, turn-based state management
+├── multiplayer.js          # Multiplayer client-side WebSocket handler
+├── server.js               # Node.js server with matchmaking & game rooms
+├── package.json            # Node.js dependencies (Express, Socket.IO)
+├── MULTIPLAYER_SETUP.md    # Technical multiplayer documentation
 └── README.md               # This file
 ```
 
 ## Features
 
-✅ **Complete game state management** (menu, playing, paused, game over)  
-✅ **Responsive canvas** that adapts to screen size  
-✅ **Input handling** (keyboard, mouse, touch)  
-✅ **Score and lives system**  
-✅ **Settings panel** (sound toggle, easily extensible)  
-✅ **Modern UI** with smooth transitions and gradients  
-✅ **Utility functions** for common game operations  
-✅ **Clean architecture** ready for rapid development  
-✅ **Real-time multiplayer** with matchmaking and chat  
-✅ **WebSocket-based networking** for low-latency gameplay  
+✅ **Real-time multiplayer** with instant matchmaking  
+✅ **Turn-based gameplay** - best of 3 rounds  
+✅ **Server-authoritative logic** - cheat-proof game mechanics  
+✅ **Secure choice submission** - choices hidden until both players submit  
+✅ **Animated countdown reveal** (3-2-1) for dramatic effect  
+✅ **Single player vs AI** for practice  
+✅ **Live chat** in dedicated sidebar during games  
+✅ **Rematch system** to play again with same opponent  
+✅ **Responsive design** - works on desktop and mobile  
+✅ **WebSocket-based** with Socket.IO for low-latency gameplay  
+✅ **Modern UI** with smooth animations and emoji icons  
 
-## Customization Guide
+## How It Works
 
-### Adding Your Game Logic
+### Game Flow
 
-The template is designed to be game-agnostic. Here's where to add your specific game:
+1. **Join Lobby** - Enter your name and click "Find Match"
+2. **Matchmaking** - Server pairs you with an available opponent
+3. **Ready Up** - Both players click "Ready!" to start
+4. **Play Rounds** - Best of 3 rounds:
+   - Choose rock, paper, or scissors
+   - Wait for opponent to choose
+   - Watch the dramatic 3-2-1 countdown reveal
+   - See who won the round
+5. **Game Over** - Final scores displayed, option to rematch
 
-1. **Initialize game objects** in `initGame()` method
-2. **Update game logic** in `update()` method
-3. **Render graphics** in `render()` method
-4. **Handle inputs** in the input handler methods
+### Game Rules
 
-### Example: Creating a Simple Game
+- **Rock** ✊ beats Scissors ✌️
+- **Paper** ✋ beats Rock ✊  
+- **Scissors** ✌️ beats Paper ✋
+- **Draw** if both choose the same
+- **First to win 2 rounds** wins the game (best of 3)
 
-```javascript
-// In initGame()
-this.player = { x: this.canvas.width / 2, y: this.canvas.height / 2, size: 20 };
-this.enemies = [];
+### Chat Feature
 
-// In update()
-// Move player, update enemies, check collisions
+During multiplayer games, use the dedicated chat sidebar to communicate with your opponent:
+- Type messages in the input box
+- Press Enter to send
+- Chat history persists throughout the match
+- Perfect for friendly banter and trash talk!
 
-// In render()
-this.ctx.fillStyle = '#00ff00';
-this.ctx.fillRect(this.player.x, this.player.y, this.player.size, this.player.size);
-```
+### Architecture Highlights
 
-### Adding More Screens
+**Server-Side (`server.js`):**
+- Matchmaking queue pairs players automatically
+- Game rooms manage 1v1 matches
+- Choices stored securely server-side (not broadcast)
+- Server determines winners (prevents cheating)
+- Handles disconnections gracefully
 
-1. Add a new div with class "screen" in `index.html`
-2. Use `this.showScreen('your-screen-id')` to display it
+**Client-Side (`game.js` + `multiplayer.js`):**
+- Turn-based state machine
+- Real-time WebSocket communication
+- Animated reveals for dramatic effect
+- Dedicated chat sidebar for trash talk
 
-### Extending Settings
+**Security:**
+- Server-authoritative game logic
+- Validated inputs (only rock/paper/scissors accepted)
+- No client-side manipulation possible
 
-Add new settings in the `#settings` div and handle them in the Game class.
+## Technology Stack
 
-## Tips for Hackathon
+- **Frontend:** Vanilla JavaScript, HTML5 Canvas, CSS3
+- **Backend:** Node.js + Express
+- **Real-time:** Socket.IO (WebSocket)
+- **No frameworks required!**
 
-- **Start simple**: Get basic gameplay working first
-- **Use the Entity class**: Extend it for players, enemies, projectiles
-- **Leverage Utils**: Pre-built collision detection and math helpers
-- **Test frequently**: The game runs immediately in the browser
-- **Mobile-friendly**: Canvas and UI are already responsive
+## Deployment
 
-## Adding Assets Later
+Ready to host on the internet? Deploy to:
 
-If you need images or sounds:
+- **Render** (recommended) - Free tier with WebSocket support
+- **Railway** - Simple deployment with no cold starts
+- **Fly.io** - Edge locations for global low-latency
+- **Heroku** - Classic platform (paid tiers only)
 
-```javascript
-// Images
-const img = new Image();
-img.src = 'path/to/image.png';
-img.onload = () => { /* ready to use */ };
+See deployment instructions in [MULTIPLAYER_SETUP.md](MULTIPLAYER_SETUP.md)
 
-// Audio
-const audio = new Audio('path/to/sound.mp3');
-if (this.soundEnabled) audio.play();
-```
+## Troubleshooting
 
-## Common Game Types This Supports
+**Players can't see buttons:**
+- Refresh the page after both players click "Ready!"
 
-- **Arcade games** (Space Invaders, Breakout)
-- **Platformers** (with gravity and collision)
-- **Puzzle games** (Tetris, Match-3)
-- **Shooter games** (top-down or side-scrolling)
-- **Clicker/idle games**
-- **Physics-based games**
+**Connection issues:**
+- Check server is running: `npm start`
+- Verify health: `http://localhost:3000/health`
+- Check browser console for errors (F12)
+
+**Matchmaking not working:**
+- Both players must be connected to same server
+- Check `/health` endpoint to see waiting players count
 
 ## Browser Compatibility
 
-Works in all modern browsers (Chrome, Firefox, Safari, Edge). No build tools or dependencies required!
-
-## Development
-
-No installation needed! Just open `index.html` in your browser and start coding. Use browser dev tools (F12) for debugging.
+Works in all modern browsers (Chrome, Firefox, Safari, Edge).
 
 ## License
 
