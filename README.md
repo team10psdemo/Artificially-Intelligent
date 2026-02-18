@@ -4,6 +4,8 @@ A real-time multiplayer rock-paper-scissors game built with WebSockets for insta
 
 ## Quick Start
 
+[Download Node.js](https://nodejs.org/en/download/)
+
 ### Single Player (vs Computer)
 1. Install dependencies: `npm install`
 2. Start server: `npm start`
