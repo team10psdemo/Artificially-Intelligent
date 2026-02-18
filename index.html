@@ -39,41 +39,46 @@
         </div>
 
         <div id="game-screen" class="screen">
-            <div id="game-ui">
-                <div id="game-info">
-                    <div id="round-info">Round <span id="round-number">1</span> of 3</div>
-                    <div id="score-display">
-                        <span id="score-label">You:</span> <span id="score-value">0</span>
-                        <span id="opponent-info" style="display: none;">
-                            <span id="opponent-label">Opponent:</span> <span id="opponent-score">0</span>
-                        </span>
+            <div id="game-layout">
+                <div id="game-main">
+                    <div id="game-ui">
+                        <div id="game-info">
+                            <div id="round-info">Round <span id="round-number">1</span> of 3</div>
+                            <div id="score-display">
+                                <span id="score-label">You:</span> <span id="score-value">0</span>
+                                <span id="opponent-info" style="display: none;">
+                                    <span id="opponent-label">Opponent:</span> <span id="opponent-score">0</span>
+                                </span>
+                            </div>
+                        </div>
+                        <button id="pause-btn" class="btn btn-small">Quit</button>
+                    </div>
+                    
+                    <canvas id="game-canvas"></canvas>
+                    
+                    <div id="choice-buttons">
+                        <button id="rock-btn" class="btn btn-choice">✊ Rock</button>
+                        <button id="paper-btn" class="btn btn-choice">✋ Paper</button>
+                        <button id="scissors-btn" class="btn btn-choice">✌️ Scissors</button>
+                    </div>
+                    
+                    <div id="waiting-message" style="display: none;">
+                        Waiting for opponent...
+                    </div>
+                    
+                    <div id="result-display" style="display: none;"></div>
+                    
+                    <div id="round-result-screen" style="display: none;">
+                        <h3 id="round-result-text"></h3>
+                        <button id="next-round-btn" class="btn btn-primary">Next Round</button>
                     </div>
                 </div>
-                <button id="pause-btn" class="btn btn-small">Quit</button>
-            </div>
-            
-            <canvas id="game-canvas"></canvas>
-            
-            <div id="choice-buttons">
-                <button id="rock-btn" class="btn btn-choice">✊ Rock</button>
-                <button id="paper-btn" class="btn btn-choice">✋ Paper</button>
-                <button id="scissors-btn" class="btn btn-choice">✌️ Scissors</button>
-            </div>
-            
-            <div id="waiting-message" style="display: none;">
-                Waiting for opponent...
-            </div>
-            
-            <div id="result-display" style="display: none;"></div>
-            
-            <div id="round-result-screen" style="display: none;">
-                <h3 id="round-result-text"></h3>
-                <button id="next-round-btn" class="btn btn-primary">Next Round</button>
-            </div>
-            
-            <div id="chat-box" style="display: none;">
-                <div id="chat-messages"></div>
-                <input type="text" id="chat-input" placeholder="Type message...">
+                
+                <div id="chat-box" style="display: none;">
+                    <h3 class="chat-title">Chat</h3>
+                    <div id="chat-messages"></div>
+                    <input type="text" id="chat-input" placeholder="Type message...">
+                </div>
             </div>
         </div>
 
