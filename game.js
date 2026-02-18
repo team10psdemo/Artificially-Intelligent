@@ -65,6 +65,12 @@ class Game {
         document.getElementById('multiplayer-btn').addEventListener('click', () => this.showMultiplayerScreen());
         document.getElementById('sound-toggle').addEventListener('change', (e) => {
             this.soundEnabled = e.target.checked;
+            if (typeof audioManager !== 'undefined') {
+                audioManager.setEnabled(e.target.checked);
+                if (e.target.checked) {
+                    audioManager.playButtonClick();
+                }
+            }
         });
         
         // Computer mode buttons
@@ -195,6 +201,12 @@ class Game {
         document.getElementById('opponent-label').textContent = 'Computer:';
         document.getElementById('chat-box').style.display = 'none';
         document.getElementById('highscore-box').style.display = 'flex';
+        
+        if (typeof audioManager !== 'undefined') {
+            audioManager.playButtonClick();
+            audioManager.playThemeMusic();
+        }
+        
         this.initGame();
         this.render();
         
@@ -232,6 +244,11 @@ class Game {
         document.getElementById('opponent-info').style.display = 'block';
         document.getElementById('chat-box').style.display = 'block';
         document.getElementById('highscore-box').style.display = 'flex';
+        
+        if (typeof audioManager !== 'undefined') {
+            audioManager.playThemeMusic();
+        }
+        
         this.initGame();
         this.render();
         
@@ -269,6 +286,9 @@ class Game {
         document.getElementById('highscore-box').style.display = 'none';
         if (this.multiplayer) {
             this.multiplayer.disconnect();
+        }
+        if (typeof audioManager !== 'undefined') {
+            audioManager.stopMusic();
         }
         this.showScreen('menu-screen');
     }
@@ -373,6 +393,10 @@ class Game {
         this.gamePhase = 'waiting';
         this.hideChoiceButtons();
         
+        if (typeof audioManager !== 'undefined') {
+            audioManager.playButtonClick();
+        }
+        
         document.getElementById('waiting-message').style.display = 'block';
         document.getElementById('waiting-message').textContent = 'Waiting for opponent...';
         
@@ -455,10 +479,19 @@ class Game {
         let resultText = '';
         if (winnerId === 'draw') {
             resultText = "It's a Draw!";
+            if (typeof audioManager !== 'undefined') {
+                audioManager.playDrawSound();
+            }
         } else if (winnerId === myId || winnerId === 'player') {
             resultText = 'You Win This Round!';
+            if (typeof audioManager !== 'undefined') {
+                audioManager.playWinSound();
+            }
         } else {
             resultText = 'You Lose This Round!';
+            if (typeof audioManager !== 'undefined') {
+                audioManager.playLoseSound();
+            }
         }
         
         this.roundResult = resultText;
@@ -482,6 +515,9 @@ class Game {
         const ctx = this.ctx;
         
         for (let i = 3; i >= 1; i--) {
+            if (typeof audioManager !== 'undefined') {
+                audioManager.playCountdownTick();
+            }
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#fff';
@@ -489,6 +525,10 @@ class Game {
             ctx.textAlign = 'center';
             ctx.fillText(i, canvas.width / 2, canvas.height / 2);
             await new Promise(resolve => setTimeout(resolve, 600));
+        }
+        
+        if (typeof audioManager !== 'undefined') {
+            audioManager.playRevealSound();
         }
         
         this.render();
@@ -536,10 +576,19 @@ class Game {
         let resultText = '';
         if (data.winnerId === 'draw') {
             resultText = "It's a Tie!";
+            if (typeof audioManager !== 'undefined') {
+                audioManager.playDrawSound();
+            }
         } else if (data.winnerId === myId || data.winnerId === 'player') {
             resultText = 'You Win!';
+            if (typeof audioManager !== 'undefined') {
+                setTimeout(() => audioManager.playWinSound(), 300);
+            }
         } else {
             resultText = 'You Lose!';
+            if (typeof audioManager !== 'undefined') {
+                setTimeout(() => audioManager.playLoseSound(), 300);
+            }
         }
         
         document.getElementById('final-result-text').textContent = resultText;
