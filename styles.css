@@ -116,6 +116,7 @@ h3 {
 #game-main {
     flex: 1;
     min-width: 0;
+    position: relative;
 }
 
 #game-ui {
@@ -205,20 +206,70 @@ h3 {
 
 #round-result-text {
     font-size: 2rem;
-    margin-bottom: 1.5rem;
+    margin: 1.5rem 0;
     color: #FFD700;
+}
+
+#round-choices-display {
+    margin: 2rem 0;
+}
+
+.choice-reveal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 15px;
+}
+
+.player-choice, .opponent-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.choice-emoji {
+    font-size: 4rem;
+    display: block;
+}
+
+.choice-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.player-choice .choice-label {
+    color: #4CAF50;
+}
+
+.opponent-choice .choice-label {
+    color: #f44336;
+}
+
+.vs-divider {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #666;
 }
 
 /* Game Over Screen */
 #game-over-screen {
     text-align: center;
-    padding: 2rem;
+    padding: 3rem 2rem;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 15px;
+    margin-top: 2rem;
+    border: 3px solid rgba(255, 215, 0, 0.5);
 }
 
 #game-over-screen h2 {
     font-size: 3rem;
     margin-bottom: 1.5rem;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
 #final-scores {
@@ -382,5 +433,22 @@ h3 {
     
     #chat-messages {
         height: 150px;
+    }
+    
+    .choice-reveal {
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .choice-emoji {
+        font-size: 3rem;
+    }
+    
+    .choice-label {
+        font-size: 1rem;
+    }
+    
+    .vs-divider {
+        font-size: 2rem;
     }
 }

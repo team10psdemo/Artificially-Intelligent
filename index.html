@@ -69,8 +69,22 @@
                     <div id="result-display" style="display: none;"></div>
                     
                     <div id="round-result-screen" style="display: none;">
+                        <div id="round-choices-display"></div>
                         <h3 id="round-result-text"></h3>
                         <button id="next-round-btn" class="btn btn-primary">Next Round</button>
+                    </div>
+                    
+                    <div id="game-over-screen" style="display: none;">
+                        <h2 id="final-result-text">Game Over</h2>
+                        <div id="final-scores">
+                            <p>Your Score: <span id="final-my-score">0</span></p>
+                            <p>Opponent Score: <span id="final-opponent-score">0</span></p>
+                        </div>
+                        <div id="rematch-section" style="display: none;">
+                            <button id="rematch-btn" class="btn btn-primary">Rematch</button>
+                            <p id="rematch-status"></p>
+                        </div>
+                        <button id="final-menu-btn" class="btn btn-secondary">Main Menu</button>
                     </div>
                 </div>
                 
@@ -80,19 +94,6 @@
                     <input type="text" id="chat-input" placeholder="Type message...">
                 </div>
             </div>
-        </div>
-
-        <div id="game-over-screen" style="display: none;">
-            <h2 id="final-result-text">Game Over</h2>
-            <div id="final-scores">
-                <p>Your Score: <span id="final-my-score">0</span></p>
-                <p>Opponent Score: <span id="final-opponent-score">0</span></p>
-            </div>
-            <div id="rematch-section" style="display: none;">
-                <button id="rematch-btn" class="btn btn-primary">Rematch</button>
-                <p id="rematch-status"></p>
-            </div>
-            <button id="final-menu-btn" class="btn btn-secondary">Main Menu</button>
         </div>
     </div>
 

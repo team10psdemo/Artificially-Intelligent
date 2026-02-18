@@ -31,6 +31,10 @@ class Game {
         this.gamePhase = 'menu'; // 'menu', 'choosing', 'waiting', 'revealing', 'round-result', 'game-over'
         this.roundResult = null;
         
+        // Animation state
+        this.animationTime = 0;
+        this.floatingEmojis = [];
+        
         // Set canvas size
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -41,9 +45,13 @@ class Game {
     }
     
     resizeCanvas() {
-        const container = this.canvas.parentElement;
-        this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = this.canvas.offsetHeight;
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
+        
+        if (this.floatingEmojis.length > 0) {
+            this.initFloatingEmojis();
+        }
     }
     
     setupEventListeners() {
@@ -162,10 +170,15 @@ class Game {
         this.gamePhase = 'choosing';
         this.updateUI();
         this.showScreen('game-screen');
-        document.getElementById('opponent-info').style.display = 'none';
+        document.getElementById('opponent-info').style.display = 'inline';
+        document.getElementById('opponent-label').textContent = 'Computer:';
         document.getElementById('chat-box').style.display = 'none';
-        this.initGame();
-        this.render();
+        
+        setTimeout(() => {
+            this.resizeCanvas();
+            this.initFloatingEmojis();
+            this.initGame();
+        }, 50);
     }
     
     startMultiplayerGame(gameState, playerNumber) {
@@ -181,9 +194,13 @@ class Game {
         this.updateUI();
         this.showScreen('game-screen');
         document.getElementById('opponent-info').style.display = 'block';
-        document.getElementById('chat-box').style.display = 'block';
-        this.initGame();
-        this.render();
+        document.getElementById('chat-box').style.display = 'flex';
+        
+        setTimeout(() => {
+            this.resizeCanvas();
+            this.initFloatingEmojis();
+            this.initGame();
+        }, 50);
     }
     
     pauseGame() {
@@ -200,6 +217,10 @@ class Game {
         this.state = GameState.MENU;
         this.isMultiplayer = false;
         this.gamePhase = 'menu';
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
         document.getElementById('game-over-screen').style.display = 'none';
         document.getElementById('round-result-screen').style.display = 'none';
         if (this.multiplayer) {
@@ -219,8 +240,74 @@ class Game {
     
     initGame() {
         console.log('RPS Game initialized');
+        console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+        console.log('Floating emojis:', this.floatingEmojis.length);
         this.gamePhase = 'choosing';
+        
+        if (this.floatingEmojis.length === 0) {
+            this.initFloatingEmojis();
+        }
+        
         this.showChoiceButtons();
+        this.startAnimationLoop();
+        
+        console.log('Animation loop started, state:', this.state);
+    }
+    
+    initFloatingEmojis() {
+        this.floatingEmojis = [];
+        const emojis = ['✊', '✋', '✌️'];
+        const width = this.canvas ? this.canvas.width : 800;
+        const height = this.canvas ? this.canvas.height : 500;
+        
+        for (let i = 0; i < 10; i++) {
+            this.floatingEmojis.push({
+                emoji: emojis[Math.floor(Math.random() * emojis.length)],
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.04
+            });
+        }
+    }
+    
+    updateFloatingEmojis() {
+        if (!this.canvas) return;
+        
+        this.floatingEmojis.forEach(emoji => {
+            emoji.x += emoji.vx;
+            emoji.y += emoji.vy;
+            emoji.rotation += emoji.rotationSpeed;
+            
+            if (emoji.x < -50) emoji.x = this.canvas.width + 50;
+            if (emoji.x > this.canvas.width + 50) emoji.x = -50;
+            if (emoji.y < -50) emoji.y = this.canvas.height + 50;
+            if (emoji.y > this.canvas.height + 50) emoji.y = -50;
+        });
+    }
+    
+    startAnimationLoop() {
+        if (this.animationId) {
+            console.log('Animation already running');
+            return;
+        }
+        
+        console.log('Starting animation loop');
+        
+        const animate = () => {
+            if (this.state === GameState.PLAYING) {
+                this.animationTime += 0.016;
+                this.updateFloatingEmojis();
+                this.render();
+                this.animationId = requestAnimationFrame(animate);
+            } else {
+                console.log('Animation stopped - state is not PLAYING:', this.state);
+                this.animationId = null;
+            }
+        };
+        this.animationId = requestAnimationFrame(animate);
     }
     
     showChoiceButtons() {
@@ -367,6 +454,23 @@ class Game {
         document.getElementById('round-result-screen').style.display = 'block';
         document.getElementById('round-result-text').textContent = resultText;
         document.getElementById('choice-buttons').style.display = 'none';
+        
+        const choiceInfo = document.getElementById('round-choices-display');
+        if (choiceInfo) {
+            choiceInfo.innerHTML = `
+                <div class="choice-reveal">
+                    <div class="player-choice">
+                        <span class="choice-emoji">${this.getChoiceEmoji(this.myChoice)}</span>
+                        <span class="choice-label">You: ${this.myChoice}</span>
+                    </div>
+                    <div class="vs-divider">VS</div>
+                    <div class="opponent-choice">
+                        <span class="choice-emoji">${this.getChoiceEmoji(this.opponentChoice)}</span>
+                        <span class="choice-label">Opponent: ${this.opponentChoice}</span>
+                    </div>
+                </div>
+            `;
+        }
     }
     
     nextRound() {
@@ -376,11 +480,12 @@ class Game {
         this.roundResult = null;
         this.gamePhase = 'choosing';
         this.showChoiceButtons();
-        this.render();
+        if (!this.animationId) {
+            this.startAnimationLoop();
+        }
     }
     
     showFinalResults(data) {
-        this.gamePhase = 'game-over';
         const myId = this.multiplayer ? this.multiplayer.socket.id : 'player';
         
         let resultText = '';
@@ -449,60 +554,127 @@ class Game {
         }
         this.updateUI();
         this.showChoiceButtons();
-        this.render();
+        this.initFloatingEmojis();
+        if (!this.animationId) {
+            this.startAnimationLoop();
+        }
     }
     
     render() {
         const canvas = this.canvas;
         const ctx = this.ctx;
         
+        if (!canvas || !ctx) return;
+        
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        this.drawFloatingEmojis(ctx);
         
         ctx.textAlign = 'center';
         
         if (this.gamePhase === 'choosing') {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, canvas.height / 2 - 100, canvas.width, 150);
+            
             ctx.fillStyle = '#fff';
-            ctx.font = '32px Arial';
-            ctx.fillText('Make Your Choice!', canvas.width / 2, canvas.height / 2 - 50);
-            ctx.font = '20px Arial';
-            ctx.fillStyle = '#aaa';
-            ctx.fillText(`Round ${this.currentRound} of ${this.maxRounds}`, canvas.width / 2, canvas.height / 2);
+            ctx.font = 'bold 36px Arial';
+            ctx.fillText('Make Your Choice!', canvas.width / 2, canvas.height / 2 - 30);
+            ctx.font = '22px Arial';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText(`Round ${this.currentRound} of ${this.maxRounds}`, canvas.width / 2, canvas.height / 2 + 20);
         } else if (this.gamePhase === 'waiting') {
-            ctx.fillStyle = '#fff';
-            ctx.font = '24px Arial';
-            ctx.fillText('Waiting for opponent...', canvas.width / 2, canvas.height / 2);
+            const pulseSize = Math.sin(this.animationTime * 3) * 10 + 60;
             
-            if (this.myChoice) {
-                ctx.font = '18px Arial';
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillText(`Your choice: ${this.myChoice.toUpperCase()}`, canvas.width / 2, canvas.height / 2 + 40);
-            }
-        } else if (this.gamePhase === 'revealing' || this.gamePhase === 'round-result') {
-            const spacing = canvas.width / 3;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(0, canvas.height / 2 - 120, canvas.width, 200);
             
-            ctx.font = '20px Arial';
-            ctx.fillStyle = '#aaa';
-            ctx.fillText('You', spacing, 100);
-            ctx.fillText('Opponent', spacing * 2, 100);
-            
-            ctx.font = '48px Arial';
+            ctx.font = `${pulseSize}px Arial`;
             ctx.fillStyle = '#4CAF50';
-            ctx.fillText(this.getChoiceEmoji(this.myChoice), spacing, canvas.height / 2);
+            ctx.fillText(this.getChoiceEmoji(this.myChoice), canvas.width / 2, canvas.height / 2 - 20);
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText(`You chose: ${this.myChoice.toUpperCase()}`, canvas.width / 2, canvas.height / 2 + 30);
+            
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#fff';
+            const dots = '.'.repeat((Math.floor(this.animationTime * 2) % 3) + 1);
+            ctx.fillText(`Waiting for opponent${dots}`, canvas.width / 2, canvas.height / 2 + 70);
+        } else if (this.gamePhase === 'revealing' || this.gamePhase === 'round-result') {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const leftX = canvas.width * 0.3;
+            const rightX = canvas.width * 0.7;
+            const centerY = canvas.height / 2;
+            
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText('YOU', leftX, 80);
             
             ctx.fillStyle = '#f44336';
-            ctx.fillText(this.getChoiceEmoji(this.opponentChoice), spacing * 2, canvas.height / 2);
+            ctx.fillText('OPPONENT', rightX, 80);
+            
+            ctx.font = '80px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText(this.getChoiceEmoji(this.myChoice), leftX, centerY);
+            
+            ctx.fillStyle = '#f44336';
+            ctx.fillText(this.getChoiceEmoji(this.opponentChoice), rightX, centerY);
+            
+            ctx.font = '18px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText(this.myChoice.toUpperCase(), leftX, centerY + 50);
+            
+            ctx.fillStyle = '#f44336';
+            ctx.fillText(this.opponentChoice.toUpperCase(), rightX, centerY + 50);
+            
+            ctx.font = '72px Arial';
+            ctx.fillStyle = '#666';
+            const scale = Math.sin(this.animationTime * 4) * 0.1 + 1;
+            ctx.save();
+            ctx.translate(canvas.width / 2, centerY);
+            ctx.scale(scale, scale);
+            ctx.fillText('VS', 0, 10);
+            ctx.restore();
             
             if (this.roundResult) {
-                ctx.font = '28px Arial';
+                ctx.font = 'bold 32px Arial';
                 ctx.fillStyle = '#FFD700';
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 20;
                 ctx.fillText(this.roundResult, canvas.width / 2, canvas.height - 80);
+                ctx.shadowBlur = 0;
             }
             
-            ctx.font = '20px Arial';
+            ctx.font = 'bold 24px Arial';
             ctx.fillStyle = '#fff';
-            ctx.fillText(`Score: ${this.myScore} - ${this.opponentScore}`, canvas.width / 2, canvas.height - 40);
+            ctx.fillText(`Score: ${this.myScore} - ${this.opponentScore}`, canvas.width / 2, canvas.height - 35);
         }
+    }
+    
+    drawFloatingEmojis(ctx) {
+        if (!this.floatingEmojis || this.floatingEmojis.length === 0) {
+            return;
+        }
+        
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        ctx.font = '45px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        this.floatingEmojis.forEach(emoji => {
+            ctx.save();
+            ctx.translate(emoji.x, emoji.y);
+            ctx.rotate(emoji.rotation);
+            ctx.fillStyle = '#fff';
+            ctx.fillText(emoji.emoji, 0, 0);
+            ctx.restore();
+        });
+        
+        ctx.restore();
     }
     
     getChoiceEmoji(choice) {
