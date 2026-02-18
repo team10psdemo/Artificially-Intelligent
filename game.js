@@ -232,16 +232,11 @@ class Game {
     updateUI() {
         document.getElementById('round-number').textContent = this.currentRound;
         document.getElementById('score-value').textContent = this.myScore;
-        
-        if (this.isMultiplayer) {
-            document.getElementById('opponent-score').textContent = this.opponentScore;
-        }
+        document.getElementById('opponent-score').textContent = this.opponentScore;
     }
     
     initGame() {
         console.log('RPS Game initialized');
-        console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
-        console.log('Floating emojis:', this.floatingEmojis.length);
         this.gamePhase = 'choosing';
         
         if (this.floatingEmojis.length === 0) {
@@ -250,8 +245,6 @@ class Game {
         
         this.showChoiceButtons();
         this.startAnimationLoop();
-        
-        console.log('Animation loop started, state:', this.state);
     }
     
     initFloatingEmojis() {
@@ -290,11 +283,8 @@ class Game {
     
     startAnimationLoop() {
         if (this.animationId) {
-            console.log('Animation already running');
             return;
         }
-        
-        console.log('Starting animation loop');
         
         const animate = () => {
             if (this.state === GameState.PLAYING) {
@@ -303,7 +293,6 @@ class Game {
                 this.render();
                 this.animationId = requestAnimationFrame(animate);
             } else {
-                console.log('Animation stopped - state is not PLAYING:', this.state);
                 this.animationId = null;
             }
         };
@@ -357,13 +346,21 @@ class Game {
         const computerChoice = choices[Math.floor(Math.random() * choices.length)];
         
         setTimeout(() => {
+            const winnerId = this.determineLocalWinner(playerChoice, computerChoice);
+            
+            if (winnerId === 'player') {
+                this.myScore++;
+            } else if (winnerId === 'computer') {
+                this.opponentScore++;
+            }
+            
             const mockResult = {
                 round: this.currentRound,
                 choices: {
                     player: playerChoice,
                     computer: computerChoice
                 },
-                winnerId: this.determineLocalWinner(playerChoice, computerChoice),
+                winnerId: winnerId,
                 scores: {
                     player: this.myScore,
                     computer: this.opponentScore
@@ -388,7 +385,7 @@ class Game {
     }
     
     onChoiceConfirmed() {
-        console.log('Choice confirmed by server');
+        // Server confirmed choice received
     }
     
     async onRoundResult(result) {
