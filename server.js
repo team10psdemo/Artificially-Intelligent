@@ -17,6 +17,10 @@ const games = new Map(); // gameId -> game state
 const players = new Map(); // socketId -> player info
 const waitingPlayers = []; // Players waiting for a match
 
+// Highscore storage
+const computerHighscores = new Map(); // playerName -> totalWins
+const multiplayerHighscores = new Map(); // playerName -> totalWins
+
 class RPSGameRoom {
     constructor(gameId, player1, player2) {
         this.gameId = gameId;
@@ -103,6 +107,24 @@ class RPSGameRoom {
     }
 }
 
+// Helper function to get top N highscores from a Map
+function getTopHighscores(highscoreMap, limit = 10) {
+    const entries = Array.from(highscoreMap.entries());
+    entries.sort((a, b) => b[1] - a[1]); // Sort by score descending
+    return entries.slice(0, limit).map((entry, index) => ({
+        name: entry[0],
+        score: entry[1],
+        rank: index + 1
+    }));
+}
+
+// Helper function to broadcast highscore updates to all clients
+function broadcastHighscores(mode) {
+    const highscoreMap = mode === 'computer' ? computerHighscores : multiplayerHighscores;
+    const topHighscores = getTopHighscores(highscoreMap, 10);
+    io.emit('highscores-updated', { mode, highscores: topHighscores });
+}
+
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
@@ -126,7 +148,10 @@ io.on('connection', (socket) => {
 
             // Join both players to the room
             socket.join(gameId);
-            io.sockets.sockets.get(opponent.id)?.join(gameId);
+            const opponentSocket = io.sockets.sockets.get(opponent.id);
+            if (opponentSocket) {
+                opponentSocket.join(gameId);
+            }
 
             // Update player info
             players.get(socket.id).gameId = gameId;
@@ -190,6 +215,33 @@ io.on('connection', (socket) => {
                     : (result.scores[game.players[0].id] < result.scores[game.players[1].id] 
                         ? game.players[1].id 
                         : 'draw');
+                
+                // Update multiplayer highscores
+                const player1 = game.players[0];
+                const player2 = game.players[1];
+                const player1Data = players.get(player1.id);
+                const player2Data = players.get(player2.id);
+                const player1Name = (player1Data && player1Data.name) || 'Unknown';
+                const player2Name = (player2Data && player2Data.name) || 'Unknown';
+                
+                if (finalWinnerId === 'draw') {
+                    // Both players get 0.5 points
+                    const currentScore1 = multiplayerHighscores.get(player1Name) || 0;
+                    const currentScore2 = multiplayerHighscores.get(player2Name) || 0;
+                    multiplayerHighscores.set(player1Name, currentScore1 + 0.5);
+                    multiplayerHighscores.set(player2Name, currentScore2 + 0.5);
+                } else if (finalWinnerId === player1.id) {
+                    // Player 1 wins
+                    const currentScore = multiplayerHighscores.get(player1Name) || 0;
+                    multiplayerHighscores.set(player1Name, currentScore + 1);
+                } else {
+                    // Player 2 wins
+                    const currentScore = multiplayerHighscores.get(player2Name) || 0;
+                    multiplayerHighscores.set(player2Name, currentScore + 1);
+                }
+                
+                // Broadcast updated highscores
+                broadcastHighscores('multiplayer');
                 
                 io.to(player.gameId).emit('game-over', {
                     winnerId: finalWinnerId,
@@ -271,6 +323,32 @@ io.on('connection', (socket) => {
             message: message,
             timestamp: Date.now()
         });
+    });
+
+    // Request highscores
+    socket.on('request-highscores', (data) => {
+        const mode = data.mode; // 'computer' or 'multiplayer'
+        const highscoreMap = mode === 'computer' ? computerHighscores : multiplayerHighscores;
+        const topHighscores = getTopHighscores(highscoreMap, 10);
+        socket.emit('highscores-data', { mode, highscores: topHighscores });
+    });
+
+    // Update computer highscore
+    socket.on('update-highscore-computer', (data) => {
+        const playerName = data.playerName;
+        const isTie = data.isTie;
+        const won = data.won;
+        
+        if (isTie) {
+            const currentScore = computerHighscores.get(playerName) || 0;
+            computerHighscores.set(playerName, currentScore + 0.5);
+        } else if (won) {
+            const currentScore = computerHighscores.get(playerName) || 0;
+            computerHighscores.set(playerName, currentScore + 1);
+        }
+        
+        // Broadcast updated highscores
+        broadcastHighscores('computer');
     });
 
     // Player disconnect
